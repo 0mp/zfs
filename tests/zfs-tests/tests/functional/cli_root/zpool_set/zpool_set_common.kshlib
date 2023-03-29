@@ -244,14 +244,7 @@ function check_user_prop
 	typeset expect_value="$3"
 	typeset value=$(zpool get -p -H -o value "$user_prop" $pool 2>&1)
 
-	if [ "$expect_value" = "$value" ]; then
-		return 0
-	else
-		log_note "User prop: $user_prop"
-		log_note "Expect value: ${#expect_value} $expect_value"
-		log_note "Value prop: ${#value} $value"
-		return 1	
-	fi
+	[ "$expect_value" = "$value" ]
 }
 
 #
