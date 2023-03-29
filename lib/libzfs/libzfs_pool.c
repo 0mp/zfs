@@ -928,7 +928,7 @@ zpool_expand_proplist(zpool_handle_t *zhp, zprop_list_t **plp,
 				continue;
 
 			entry = zfs_alloc(hdl, sizeof (zprop_list_t));
-			entry->pl_prop = ZPROP_INVAL;
+			entry->pl_prop = ZPROP_USERPROP;
 			entry->pl_user_prop = zfs_strdup(hdl, propname);
 			entry->pl_width = strlen(entry->pl_user_prop);
 			entry->pl_all = B_TRUE;
