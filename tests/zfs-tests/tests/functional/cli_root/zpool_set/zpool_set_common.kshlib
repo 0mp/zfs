@@ -26,6 +26,7 @@
 
 #
 # Copyright (c) 2014, 2016 by Delphix. All rights reserved.
+# Copyright (c) 2023 by Klara Inc.
 #
 
 . $STF_SUITE/include/libtest.shlib
@@ -62,7 +63,7 @@ function set_n_check_prop
 		[[ -z $prop || -z $dataset ]] && \
 			log_fail "property or dataset isn't defined."
 
-		log_must zfs set $prop=$expect_value $dataset
+		log_must zpool set $prop=$expect_value $dataset
 		if [[ $expect_value == "gzip-6" ]]; then
 			expect_value="gzip"
 		fi
@@ -89,7 +90,7 @@ function set_n_check_prop
 		esac
 
 	else
-		log_mustnot zfs set $prop=$expect_value $dataset
+		log_mustnot zpool set $prop=$expect_value $dataset
 
 		[[ -n $prop ]] && cur_value=$(get_prop $prop $dataset)
 		
@@ -110,18 +111,19 @@ function set_n_check_prop
 #
 function cleanup_user_prop
 {
+	# XXX: The zfs_set equivalent of this function resets user properties
+	# back to inherit. Ther is no inheirt command for zpool, however.
+	# Instead, set the property to an empty string.
+	# XXX: Can zpool(8) remove properties completely?
 	typeset pool=$1
-	typeset dtst=$(zfs list -H -r -o name -t filesystem,volume $pool)
 
 	typeset user_prop
-	for dt in $dtst; do
-		user_prop=$(zfs get -H -o property all $dtst | grep ":")
+	user_prop=$(zpool get -H -o property all $pool | grep ":")
 
-		typeset prop
-		for prop in $user_prop; do
-			zfs inherit $prop $dt ||
-				log_must zfs inherit $prop $dt
-		done
+	typeset prop
+	for prop in $user_prop; do
+		zpool set $prop="" $pool ||
+			log_must zpool set $prop="" $pool
 	done
 }
 
@@ -231,18 +233,25 @@ function user_property_value
 #
 # Check if the user property is identical to the expected value.
 #
-# $1 dataset
+# $1 pool
 # $2 user property
 # $3 expected value
 #
 function check_user_prop
 {
-	typeset dtst=$1
+	typeset pool=$1
 	typeset user_prop="$2"
 	typeset expect_value="$3"
-	typeset value=$(zfs get -p -H -o value "$user_prop" $dtst 2>&1)
+	typeset value=$(zpool get -p -H -o value "$user_prop" $pool 2>&1)
 
-	[ "$expect_value" = "$value" ]
+	if [ "$expect_value" = "$value" ]; then
+		return 0
+	else
+		log_note "User prop: $user_prop"
+		log_note "Expect value: ${#expect_value} $expect_value"
+		log_note "Value prop: ${#value} $value"
+		return 1	
+	fi
 }
 
 #
@@ -253,7 +262,7 @@ function get_source
 	typeset prop=$1
 	typeset dataset=$2
 
-	zfs get -H -o source $prop $dataset ||
+	zpool get -H -o source $prop $dataset ||
                 log_fail "Unable to get $prop source for dataset $dataset"
 }
 
@@ -323,7 +332,7 @@ function check_prop_received
         typeset prop="$2"
         typeset value="$3"
 
-        received=$(zfs get -H -o received "$prop" "$dataset") ||
+        received=$(zpool get -H -o received "$prop" "$dataset") ||
                 log_fail "Unable to get $prop received value for dataset $dataset"
         [ "$received" = "$value" ]
 }
@@ -341,7 +350,7 @@ function check_prop_missing
         typeset dataset="$1"
         typeset prop="$2"
 
-        value=$(zfs get -H -o value "$prop" "$dataset") ||
+        value=$(zpool get -H -o value "$prop" "$dataset") ||
                 log_fail "Unable to get $prop value for dataset $dataset"
         [ "$value" = "-" ]
 }

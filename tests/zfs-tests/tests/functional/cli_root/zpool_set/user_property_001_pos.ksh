@@ -27,27 +27,28 @@
 
 #
 # Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2023 by Klara Inc.
 #
 
-. $STF_SUITE/tests/functional/cli_root/zfs_set/zfs_set_common.kshlib
+. $STF_SUITE/tests/functional/cli_root/zpool_set/zpool_set_common.kshlib
 
 #
 # DESCRIPTION:
-#	ZFS can set any valid user defined property to the non-readonly dataset.
+#	ZFS can set any valid user-defined pool property to the non-readonly
+#	dataset.
 #
 # STRATEGY:
-#	1. Loop pool, fs and volume.
-#	2. Combine all kind of valid characters into a valid user defined
+#	1. Combine all kind of valid characters into a valid user defined
 #	   property name.
-#	3. Random get a string as the value.
-#	4. Verify all the valid user defined properties can be set to the
-#	   dataset in #1.
+#	2. Random get a string as the value.
+#	3. Verify all the valid user-defined pool properties can be set to the
+#	   pool.
 #
 
 verify_runnable "both"
 
-log_assert "ZFS can set any valid user defined property to the non-readonly " \
-	"dataset."
+log_assert "ZFS can set any valid user-defined pool property to the non-readonly " \
+	"pool."
 log_onexit cleanup_user_prop $TESTPOOL
 
 typeset -a names=()
@@ -56,15 +57,15 @@ typeset -a values=()
 # Longest property name (255 bytes)
 names+=("$(awk 'BEGIN { printf "x:"; while (c++ < 253) printf "a" }')")
 values+=("too-long-property-name")
-# Longest property value (8191 bytes)
+# Longest property value (XXX: how many bytes?)
 names+=("too:long:property:value")
-values+=("$(awk 'BEGIN { while (c++ < 8191) printf "A" }')")
+values+=("$(awk 'BEGIN { while (c++ < 255) printf "A" }')")
 # Valid property names
 for i in {1..10}; do
 	typeset -i len
 	((len = RANDOM % 32))
 	names+=("$(valid_user_property $len)")
-	((len = RANDOM % 512))
+	((len = RANDOM % 256))
 	values+=("$(user_property_value $len)")
 done
 
@@ -73,12 +74,10 @@ while ((i < ${#names[@]})); do
 	typeset name="${names[$i]}"
 	typeset value="${values[$i]}"
 
-	for dtst in $TESTPOOL $TESTPOOL/$TESTFS $TESTPOOL/$TESTVOL; do
-		log_must eval "zfs set $name='$value' $dtst"
-		log_must eval "check_user_prop $dtst $name '$value'"
-	done
+	log_must eval "zpool set $name='$value' $TESTPOOL"
+	log_must eval "check_user_prop $TESTPOOL $name '$value'"
 
 	((i += 1))
 done
 
-log_pass "ZFS can set any valid user defined property passed."
+log_pass "ZFS can set any valid user-defined pool property passed."
