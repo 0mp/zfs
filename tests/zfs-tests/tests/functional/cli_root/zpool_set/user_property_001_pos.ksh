@@ -56,9 +56,9 @@ typeset -a values=()
 
 # Longest property name (255 bytes)
 names+=("$(awk 'BEGIN { printf "x:"; while (c++ < 253) printf "a" }')")
-values+=("too-long-property-name")
+values+=("long-property-name")
 # Longest property value (XXX: how many bytes?)
-names+=("too:long:property:value")
+names+=("long:property:value")
 values+=("$(awk 'BEGIN { while (c++ < 255) printf "A" }')")
 # Valid property names
 for i in {1..10}; do
